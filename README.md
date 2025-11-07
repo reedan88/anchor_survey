@@ -32,7 +32,7 @@ from survey.survey import calculate_anchor_position
 
 #### Example data
 
-An example ```stations.dat``` file and ```drop_points.dat``` file are provided in data/ folder.
+An example ```stations.dat``` file and ```drop_points.dat``` file are provided in ```**data**``` folder.
 
 ## Quick Start
 1️⃣ **Clone the repository**
