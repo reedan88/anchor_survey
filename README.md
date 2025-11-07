@@ -34,8 +34,6 @@ from survey.survey import calculate_anchor_position
 
 An example ```stations.dat``` file and ```drop_points.dat``` file are provided in data/ folder.
 
-```
-
 ## Quick Start
 1️⃣ **Clone the repository**
 ```bash
