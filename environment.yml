@@ -1,0 +1,11 @@
+name: anchor_survey
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.9,<3.13
+  - pandas
+  - numpy
+  - matplotlib
+  - panel>=1.4.0
+  - pytest
+  - flake8
