@@ -101,7 +101,8 @@ anchor_survey/
 │   ├── survey_gui.py                
 │
 ├── data/
-│   ├── example_stations.dat         
+│   ├── example_stations.dat
+│   ├── drop_points.dat         
 │
 ├── tests/
 │   ├── __init__.py
@@ -113,7 +114,8 @@ anchor_survey/
 ├── environment.yml                  
 ├── .gitignore
 ├── README.md
-├── LICENSE                          
+├── LICENSE
+├── Makefile                          
 └── pyproject.toml                         
 ```
 
