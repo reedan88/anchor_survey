@@ -12,18 +12,16 @@ authors = [
 ]
 license = { text = "BSD-3" }
 requires-python = ">=3.9"
-
 dependencies = [
     "pandas",
     "numpy",
     "matplotlib",
-    "panel>=1.4.0",
-    "pytest"  # for tests
+    "panel>=1.4.0"
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/reedan88/anchor_survey"
-"Issues" = "https://github.com/reedan88/anchor_survey/issues"
+Homepage = "https://github.com/reedan88/anchor_survey"
+Issues = "https://github.com/reedan88/anchor_survey/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,4 +1,9 @@
-import io
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+@author Andrew Reed
+@brief GUI for Art Newhall's MATLAB survey software using Panel
+"""
 import tempfile
 import pandas as pd
 import numpy as np
@@ -9,17 +14,20 @@ from survey import (
     calculate_anchor_position, rms_error, calculate_fallback
 )
 
+
 pn.extension('matplotlib')
+
 
 # -----------------------------
 # Core survey computation logic
 # -----------------------------
-def run_survey(station_file, trans_depth, drop_lat_dd, drop_lon_dd, drop_depth, sound_speed):
+def run_survey(station_file, trans_depth, drop_lat_dd, drop_lon_dd,
+               drop_depth, sound_speed):
     if station_file is None:
         return "Please select a .dat file.", None
-
     try:
-        stations = pd.read_csv(station_file, delim_whitespace=True, header=None).to_numpy()
+        stations = pd.read_csv(station_file, delim_whitespace=True,
+                               header=None).to_numpy()
     except Exception as e:
         return f"Error reading file: {e}", None
 
@@ -31,14 +39,19 @@ def run_survey(station_file, trans_depth, drop_lat_dd, drop_lon_dd, drop_depth, 
     ref_lat = drop_lat_dd
     ref_lon = drop_lon_dd
 
-    station_x, station_y = latlon_to_xy(station_lats, station_lons, ref_lat, ref_lon)
+    station_x, station_y = latlon_to_xy(station_lats, station_lons,
+                                        ref_lat, ref_lon)
     drop_x, drop_y = latlon_to_xy(drop_lat_dd, drop_lon_dd, ref_lat, ref_lon)
 
     slant_range = (times / 2) * sound_speed
     horizontal_range = np.sqrt(slant_range**2 - (drop_depth - trans_depth)**2)
 
-    anchor_x, anchor_y, iterations = calculate_anchor_position(station_x, station_y, horizontal_range)
-    rms = rms_error((station_x, station_y), anchor_x, anchor_y, horizontal_range)
+    anchor_x, anchor_y, iterations = calculate_anchor_position(station_x,
+                                                               station_y,
+                                                               horizontal_range
+                                                               )
+    rms = rms_error((station_x, station_y), anchor_x, anchor_y,
+                    horizontal_range)
     anchor_lat, anchor_lon = xy_to_latlon(anchor_x, anchor_y, ref_lat, ref_lon)
     fallback = calculate_fallback(anchor_x, anchor_y, drop_x, drop_y)
 
@@ -46,16 +59,20 @@ def run_survey(station_file, trans_depth, drop_lat_dd, drop_lon_dd, drop_depth, 
     fig, ax = plt.subplots(figsize=(6, 6))
     theta = np.linspace(0, 2 * np.pi, 100)
     for i in range(len(stations)):
-        ax.plot(station_x[i] + horizontal_range[i] * np.cos(theta),
-                station_y[i] + horizontal_range[i] * np.sin(theta), 'b--')
+        x_circle = station_x[i] + horizontal_range[i] * np.cos(theta)
+        y_circle = station_y[i] + horizontal_range[i] * np.sin(theta)
+        ax.plot(x_circle, y_circle, 'b--')
     ax.plot(station_x, station_y, 'k*', label="Stations")
     ax.plot(anchor_x, anchor_y, 'ro', label="Estimated Anchor")
     ax.plot(np.nan, np.nan, linestyle='', label=f"Lat: {anchor_lat:.6f}")
     ax.plot(np.nan, np.nan, linestyle='', label=f"Lon: {anchor_lon:.6f}")
     ax.plot(np.nan, np.nan, linestyle='', label=f"RMS: {rms:.3f} m")
-    ax.axis('equal'); ax.legend(); ax.grid(True)
+    ax.axis('equal')
+    ax.legend()
+    ax.grid(True)
     ax.set_title("Anchor Triangulation")
-    ax.set_xlabel("East (m)"); ax.set_ylabel("North (m)")
+    ax.set_xlabel("East (m)")
+    ax.set_ylabel("North (m)")
 
     result_text = (
         f"### 🧭 Estimated Anchor Position\n"
@@ -68,13 +85,16 @@ def run_survey(station_file, trans_depth, drop_lat_dd, drop_lon_dd, drop_depth, 
 
     return result_text, fig
 
+
 # -----------------------------
 # Panel widgets and layout
 # -----------------------------
 file_input = pn.widgets.FileInput(name="Select .dat file", accept=".dat")
-transducer_depth = pn.widgets.FloatInput(name="Transducer Depth (m)", value=5.0, step=0.1)
+transducer_depth = pn.widgets.FloatInput(name="Transducer Depth (m)",
+                                         value=5.0, step=0.1)
 drop_depth = pn.widgets.FloatInput(name="Drop Depth (m)", value=36.0, step=0.1)
-sound_speed = pn.widgets.FloatSlider(name="Sound Speed (m/s)", value=1500, start=1400, end=1600, step=1)
+sound_speed = pn.widgets.FloatSlider(name="Sound Speed (m/s)", value=1500,
+                                     start=1400, end=1600, step=1)
 
 # --- DMS input fields ---
 lat_deg = pn.widgets.IntInput(name="Lat °", value=35)
@@ -87,8 +107,10 @@ lon_min = pn.widgets.FloatInput(name="Lon ′", value=7.822, step=0.001)
 lon_sec = pn.widgets.FloatInput(name="Lon ″", value=0.0, step=0.01)
 lon_dir = pn.widgets.Select(name="Dir", options=["E", "W"], value="W")
 
-result_pane = pn.pane.Markdown("Results will appear here.", sizing_mode="stretch_width")
+result_pane = pn.pane.Markdown("Results will appear here.",
+                               sizing_mode="stretch_width")
 plot_pane = pn.pane.Matplotlib(height=500, sizing_mode="stretch_width")
+
 
 # -----------------------------
 # Run button callback
@@ -103,8 +125,10 @@ def on_run(event):
         tmp_path = tmp.name
 
     # Convert DMS → decimal degrees using your helper
-    drop_lat_dd = dms_to_dd(lat_deg.value, lat_min.value, lat_sec.value, lat_dir.value)
-    drop_lon_dd = dms_to_dd(lon_deg.value, lon_min.value, lon_sec.value, lon_dir.value)
+    drop_lat_dd = dms_to_dd(lat_deg.value, lat_min.value,
+                            lat_sec.value, lat_dir.value)
+    drop_lon_dd = dms_to_dd(lon_deg.value, lon_min.value,
+                            lon_sec.value, lon_dir.value)
 
     result_text, fig = run_survey(
         tmp_path,
@@ -118,6 +142,7 @@ def on_run(event):
     result_pane.object = result_text
     if fig is not None:
         plot_pane.object = fig
+
 
 run_button = pn.widgets.Button(name="Run Triangulation", button_type="primary")
 run_button.on_click(on_run)

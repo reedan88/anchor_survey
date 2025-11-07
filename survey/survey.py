@@ -31,7 +31,8 @@ def dms_to_dd(degrees, minutes, seconds, direction=None):
     dd = np.where(mask, -dd, dd)
 
     # Return scalar if input was scalar
-    if np.isscalar(degrees) and np.isscalar(minutes) and np.isscalar(seconds) and np.isscalar(direction):
+    if (np.isscalar(degrees) and np.isscalar(minutes)
+            and np.isscalar(seconds) and np.isscalar(direction)):
         return float(dd)
     return dd
 
@@ -40,7 +41,7 @@ def latlon_to_xy(lat, lon, ref_lat, ref_lon):
     """
     Convert latitude and longitude to local x, y coordinates in meters
     relative to a reference latitude and longitude.
-    
+
     Parameters
     ----------
     lat : array-like
@@ -82,7 +83,7 @@ def xy_to_latlon(x, y, ref_lat, ref_lon):
         Reference latitude (degrees).
     ref_lon : float
         Reference longitude (degrees).
-    
+
     Returns:
     --------
     lat : float
@@ -135,8 +136,9 @@ def calculate_anchor_position(x, y, d, tol=0.01, max_iter=100):
         b = (x-xi)**2 + (y-yi)**2 - d**2
 
         # Solve linear system to get residuals
-        xx, residuals, rank, s = np.linalg.lstsq(np.transpose(A), b, rcond=None)
-        
+        xx, residuals, rank, s = np.linalg.lstsq(np.transpose(A),
+                                                 b, rcond=None)
+
         # Update positions
         xi = xi + xx[0]
         yi = yi + xx[1]
@@ -150,7 +152,7 @@ def calculate_anchor_position(x, y, d, tol=0.01, max_iter=100):
 
 def rms_error(p, x, y, dist):
     """
-    Calculate the RMS error between calculated distances and measured distances.
+    Calculate the RMS error between calculated and measured distances.
     """
     xi, yi = p
     r = np.sqrt((x - xi)**2 + (y - yi)**2)
@@ -159,20 +161,22 @@ def rms_error(p, x, y, dist):
 
 def calculate_fallback(anchor_x, anchor_y, drop_x, drop_y):
     """
-    Calculate the estimate fallback from the drop position to the surveyed anchor position.
+    Calculate the estimate fallback from the drop position
+    to the surveyed anchor position.
     """
-    fallback = np.sqrt((anchor_x - drop_x)**2 + (anchor_y - drop_y)**2) # in meters
+    fallback = np.sqrt((anchor_x - drop_x)**2 + (anchor_y - drop_y)**2)
     return fallback
 
 
 if __name__ == '__main__':
     # Read in the stations data
-    stations = pd.read_csv('stations.dat', delim_whitespace=True, header=None).to_numpy()
+    stations = pd.read_csv('stations.dat', delim_whitespace=True,
+                           header=None).to_numpy()
 
-    # Convert to decimal degrees 
-    station_lats = dms_to_dd(stations[:,0], stations[:,1], 0, 'N')
-    station_lons = dms_to_dd(stations[:,2], stations[:,3], 0, 'W')
-    times = np.asarray(stations[:,4], dtype=float)
+    # Convert to decimal degrees
+    station_lats = dms_to_dd(stations[:, 0], stations[:, 1], 0, 'N')
+    station_lons = dms_to_dd(stations[:, 2], stations[:, 3], 0, 'W')
+    times = np.asarray(stations[:, 4], dtype=float)
 
     # Similarly, read in the drop positions and drop_depth
     drop_data = [35, 57.068, 75, 7.822, 36]
@@ -185,7 +189,8 @@ if __name__ == '__main__':
     sound_speed = 1500.0  # sound speed in water (m/s)
 
     # Calculate the station depths
-    station_depths = np.tile(trans_depth, station_lats.shape)  # assuming same transducer depth for all stations
+    # assuming same transducer depth for all stations
+    station_depths = np.tile(trans_depth, station_lats.shape)
 
     # Next, want to start the triangulation process
     # First, set the reference latitude and longitude
@@ -193,7 +198,8 @@ if __name__ == '__main__':
     ref_lon = drop_lon
 
     # Next, convert to local distances (in meters)
-    station_x, station_y = latlon_to_xy(station_lats, station_lons, ref_lat, ref_lon)
+    station_x, station_y = latlon_to_xy(station_lats, station_lons,
+                                        ref_lat, ref_lon)
     drop_x, drop_y = latlon_to_xy(drop_lat, drop_lon, ref_lat, ref_lon)
 
     # Next, calculate the slant and horizontal ranges
@@ -201,37 +207,36 @@ if __name__ == '__main__':
     horizontal_range = np.sqrt(slant_range**2 - (drop_depth - trans_depth)**2)
 
     # Calculate the anchor positions
-    anchor_x, anchor_y, iterations = calculate_anchor_position(station_x, station_y, horizontal_range)
+    anchor_x, anchor_y, iterations = calculate_anchor_position(
+        station_x, station_y, horizontal_range)
 
     # Compute RMS error for the fitted results
-    rms = rms_error((station_x, station_y), anchor_x, anchor_y, horizontal_range)
+    rms = rms_error((station_x, station_y), anchor_x,
+                    anchor_y, horizontal_range)
 
     # Next, recompute the actual lat/lon from the xi, yi coordinates
     anchor_lat, anchor_lon = xy_to_latlon(anchor_x, anchor_y, ref_lat, ref_lon)
 
     # Now calculate the fallback
     fallback = calculate_fallback(anchor_lat, anchor_lon, drop_lat, drop_lon)
-    print(f'Estimated anchor location: {np.round(anchor_lat, 4)} lat, {np.round(anchor_lon, 4)} /n')
+    print(f'Estimated anchor location: {np.round(anchor_lat, 4)} lat,'
+          f'{np.round(anchor_lon, 4)} /n')
     print(f'Estimated fallback: {np.round(fallback, 2)} m')
 
     # --- Plot horizontal view ---
-    fig, ax = plt.subplots(figsize=(6,6))
+    fig, ax = plt.subplots(figsize=(6, 6))
     theta = np.linspace(0, 2*np.pi, 100)
     nstations = len(stations)
     for i in range(nstations):
-        ax.plot(station_x[i] + horizontal_range[i]*np.cos(theta), station_y[i] + horizontal_range[i]*np.sin(theta), 'b--')
+        ax.plot(station_x[i] + horizontal_range[i]*np.cos(theta),
+                station_y[i] + horizontal_range[i]*np.sin(theta),
+                'b--')
 
     ax.plot(station_x, station_y, 'k*', label="Stations")
     ax.plot(anchor_x, anchor_y, 'ro', label="Estimated Anchor")
     ax.plot(np.nan, np.nan, linestyle='', label=f"Lat: {anchor_lat:.6f}")
     ax.plot(np.nan, np.nan, linestyle='', label=f"Lon: {anchor_lon:.6f}")
     ax.plot(np.nan, np.nan, linestyle='', label=f"RMS: {rms:.6f} m")
-
-
-    # info_text = (f"Lat: {anchor_lat:.6f}\n"
-    #              f"Lon: {anchor_lon:.6f}\n"
-    #              f"RMS error: {rms:.2f} m")
-    # ax.text(anchor_x + 20, anchor_y + 20, info_text, fontsize=10, bbox=dict(facecolor='white', alpha=0.7))
 
     ax.set_xlabel("East (m)")
     ax.set_ylabel("North (m)")

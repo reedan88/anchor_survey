@@ -16,7 +16,7 @@ Interactive Python tool for estimating seafloor anchor positions from ship surve
 ```bash
 git clone git@github.com:reedan88/anchor_survey.git
 cd anchor_survey
-pip install -r requirements.txt
+make env
 ```
 
 ## Usage
