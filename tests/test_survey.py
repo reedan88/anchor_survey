@@ -15,6 +15,7 @@ from survey.survey import (
     calculate_fallback,
 )
 
+
 def test_dms_to_dd_scalar():
     # 35°57'4" N should be about 35.9511
     dd = dms_to_dd(35, 57, 4, 'N')
@@ -24,6 +25,7 @@ def test_dms_to_dd_scalar():
     dd = dms_to_dd(75, 7, 49, 'W')
     assert np.isclose(dd, -75.1303, atol=1e-4)
 
+
 def test_latlon_xy_conversion_roundtrip():
     lat, lon = 35.9511, -75.1303
     ref_lat, ref_lon = lat, lon
@@ -31,6 +33,7 @@ def test_latlon_xy_conversion_roundtrip():
     lat2, lon2 = xy_to_latlon(x, y, ref_lat, ref_lon)
     assert np.isclose(lat, lat2, atol=1e-6)
     assert np.isclose(lon, lon2, atol=1e-6)
+
 
 def test_calculate_anchor_position():
     # Simple geometry test: three stations at known offsets
@@ -43,6 +46,7 @@ def test_calculate_anchor_position():
     assert np.isclose(yi, true_anchor[1], atol=1e-3)
     assert iters < 20
 
+
 def test_rms_error_simple():
     x = np.array([0, 1])
     y = np.array([0, 0])
@@ -50,6 +54,7 @@ def test_rms_error_simple():
     p = (0, 0)
     err = rms_error(p, x, y, dist)
     assert err >= 0
+
 
 def test_calculate_fallback_distance():
     drop_lat, drop_lon = 35.9511, -75.1303
