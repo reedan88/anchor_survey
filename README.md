@@ -1,15 +1,16 @@
-# ⚓ Anchor Triangulation Tool
+# ⚓ Anchor Survey Tool
 
 Interactive Python tool for estimating seafloor anchor positions from ship survey data.
 
 ---
 
 ## Features
-- Upload `.dat` station files
-- Specify drop latitude/longitude
-- Adjustable ship transducer depth and sound speed
-- Computes estimated anchor location and fallback distance
-- Displays results with an interactive Matplotlib plot
+* **File Input**: Load station .dat files for survey analysis
+* **Custom Inputs**: Enter ship transducer depth, drop lat/lon (DMS), and sound speed
+* **Real-Time Visualization**: Interactive Matplotlib plot of triangulated anchor position
+* **Robust Computation**: Iterative least-squares anchor location solver with RMS error reporting
+* **Automated Testing**: Pytest suite with GitHub Actions integration
+* **Fully Reproducible**: Conda + pip hybrid environment and Makefile automation
 
 ## Installation
 ```bash
@@ -31,26 +32,60 @@ from survey.survey import calculate_anchor_position
 
 #### Example data
 
-An example ```stations.dat``` file is provided in data/.
-```
-from setuptools import setup, find_packages
+An example ```stations.dat``` file and ```drop_points.dat``` file are provided in data/ folder.
 
-setup(
-    name="anchor-triangulation",
-    version="0.1.0",
-    author="Andrew Reed",
-    packages=find_packages(),
-    install_requires=[
-        "pandas",
-        "numpy",
-        "matplotlib",
-        "panel>=1.4.0"
-    ],
-)
 ```
-Then you can install locally for development:
+
+## Quick Start
+1️⃣ **Clone the repository**
+```bash
+git clone git@github.com:reedan88/anchor_survey.git
+cd anchor_survey
 ```
-pip install -e .
+
+---
+2️⃣ **Create the environment**
+
+Use the included Makefile to create or update the Conda environment:
+```bash
+make env
+```
+Or, manually:
+```bash
+conda env create -f environment.yml
+```
+
+This will:
+* Create an environment named anchor_survey
+* Install all required dependencies (numpy, pandas, matplotlib, panel)
+* Install the package in editable mode (```-e .```)
+
+---
+3️⃣ **Activate the environment**
+
+```bash
+conda activate anchor_survey
+```
+Check libraries installed (optional):
+```bash
+make check-env
+```
+
+---
+4️⃣ **Launch the GUI**
+
+Run the interactive Panel-based interface:
+```bash
+make gui
+```
+This opens your default browser with the web app at: http://localhost:5006/survey_gui
+
+---
+5️⃣ **Run tests**
+
+To confirm the code is working properly:
+```bash
+make test
 ```
 
 
@@ -76,11 +111,18 @@ anchor_survey/
 │
 ├── notebooks/
 │   ├── exploration.ipynb            
-│
-├── requirements.txt                 
+│              
 ├── environment.yml                  
 ├── .gitignore
 ├── README.md
 ├── LICENSE                          
-└── setup.py                         
+└── pyproject.toml                         
 ```
+
+## Citation & License
+
+This project is released under the BSD-3-clause License
+
+If you use this tool in a publication, please cite:
+
+> Reed, A. (2025). Anchor Triangulation Tool: Python Implementation of Acoustic Survey Positioning. GitHub Repository. https://github.com/reedan88/anchor_survey

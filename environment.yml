@@ -2,10 +2,22 @@ name: anchor_survey
 channels:
   - conda-forge
 dependencies:
+  # --- Core environment ---
   - python>=3.9,<3.13
   - pandas
   - numpy
   - matplotlib
   - panel>=1.4.0
+
+  # --- Dev and QA tools ---
   - pytest
   - flake8
+
+  # --- Optional pip-based installs ---
+  - pip
+
+  # The pip section below runs *after* conda installs its packages
+  - pip:
+      # Install your local package in editable mode
+      - -e .
+
