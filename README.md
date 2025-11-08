@@ -14,7 +14,7 @@ Interactive Python tool for estimating seafloor anchor positions from ship surve
 
 ## Installation
 ```bash
-git clone git@github.com:reedan88/anchor_survey.git
+git clone git@github.com:WHOIGit/anchor_survey.git
 cd anchor_survey
 make env
 ```
@@ -37,7 +37,7 @@ An example ```stations.dat``` file and ```drop_points.dat``` file are provided i
 ## Quick Start
 1️⃣ **Clone the repository**
 ```bash
-git clone git@github.com:reedan88/anchor_survey.git
+git clone git@github.com:WHOIGit/anchor_survey.git
 cd anchor_survey
 ```
 
