@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import panel as pn
-from survey import (
+from survey.survey import (
     dms_to_dd, latlon_to_xy, xy_to_latlon,
     calculate_anchor_position, rms_error, calculate_fallback
 )
