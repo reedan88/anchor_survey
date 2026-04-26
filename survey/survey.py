@@ -4,15 +4,45 @@
 @author Andrew Reed
 @brief Implementation of Art Newhall's MATLAB survey software
 
+Coordinate system:
+- All functions work with local x/y coordinates in meters, except where
+  noted (dms_to_dd, latlon_to_xy, xy_to_latlon handle lat/lon in degrees)
+- The local coordinate system uses a flat-earth approximation valid for
+  small areas (< ~10 km)
+- X-axis: East (longitude variation scaled by cos(lat))
+- Y-axis: North (latitude variation)
+- Earth radius: 6,371,000 m
+
 """
+from __future__ import annotations
+
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+from typing import Union, Tuple, Optional
 
 
-def dms_to_dd(degrees, minutes, seconds, direction=None):
+def dms_to_dd(degrees: Union[int, float, np.ndarray], 
+              minutes: Union[int, float, np.ndarray], 
+              seconds: Union[int, float, np.ndarray], 
+              direction: Optional[Union[str, np.ndarray]] = None) -> Union[float, np.ndarray]:
     """
     Convert degrees, minutes, seconds to decimal degrees.
+    
+    Parameters
+    ----------
+    degrees : int, float, or array-like
+        Degrees component (can be negative for south/west).
+    minutes : int, float, or array-like
+        Minutes component.
+    seconds : int, float, or array-like
+        Seconds component.
+    direction : str or array-like, optional
+        Direction ('N', 'S' for latitude; 'E', 'W' for longitude).
+        If None, uses sign of degrees to determine direction.
+    
+    Returns
+    -------
+    float or np.ndarray
+        Decimal degrees. Returns scalar if all inputs are scalars.
     """
     if direction is None:
         # First, check the sign on the degrees to determine direction
@@ -37,28 +67,33 @@ def dms_to_dd(degrees, minutes, seconds, direction=None):
     return dd
 
 
-def latlon_to_xy(lat, lon, ref_lat, ref_lon):
+def latlon_to_xy(lat: Union[float, np.ndarray], 
+                 lon: Union[float, np.ndarray], 
+                 ref_lat: float, 
+                 ref_lon: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Convert latitude and longitude to local x, y coordinates in meters
     relative to a reference latitude and longitude.
-
+    
+    Uses a flat-earth approximation valid for small areas (< ~10 km).
+    
     Parameters
     ----------
-    lat : array-like
-        Latitudes to convert.
-    lon : array-like
-        Longitudes to convert.
+    lat : float or array-like
+        Latitude(s) in decimal degrees.
+    lon : float or array-like
+        Longitude(s) in decimal degrees.
     ref_lat : float
-        Reference latitude.
+        Reference latitude in decimal degrees.
     ref_lon : float
-        Reference longitude.
-
+        Reference longitude in decimal degrees.
+    
     Returns
     -------
-    x : array-like
-        X coordinates in meters.
-    y : array-like
-        Y coordinates in meters.
+    x : np.ndarray
+        X coordinates in meters (east from reference).
+    y : np.ndarray
+        Y coordinates in meters (north from reference).
     """
     # Approximate conversion factors
     R = 6371000  # Earth radius in meters
@@ -69,27 +104,32 @@ def latlon_to_xy(lat, lon, ref_lat, ref_lon):
     return x, y
 
 
-def xy_to_latlon(x, y, ref_lat, ref_lon):
+def xy_to_latlon(x: Union[float, np.ndarray], 
+                  y: Union[float, np.ndarray], 
+                  ref_lat: float, 
+                  ref_lon: float) -> Tuple[float, float]:
     """
     Convert local x,y coordinates back to latitude and longitude.
-
-    Parameters:
-    -----------
-    x : float
-        Local x coordinate (meters).
-    y : float
-        Local y coordinate (meters).
+    
+    Inverse of latlon_to_xy(). Uses flat-earth approximation.
+    
+    Parameters
+    ----------
+    x : float or array-like
+        Local x coordinate(s) in meters (east from reference).
+    y : float or array-like
+        Local y coordinate(s) in meters (north from reference).
     ref_lat : float
-        Reference latitude (degrees).
+        Reference latitude in decimal degrees.
     ref_lon : float
-        Reference longitude (degrees).
-
-    Returns:
-    --------
-    lat : float
-        Latitude (degrees).
-    lon : float
-        Longitude (degrees).
+        Reference longitude in decimal degrees.
+    
+    Returns
+    -------
+    lat : float or np.ndarray
+        Latitude(s) in decimal degrees.
+    lon : float or np.ndarray
+        Longitude(s) in decimal degrees.
     """
     R = 6371000  # Earth radius in meters
     dlat = y / R
@@ -99,30 +139,38 @@ def xy_to_latlon(x, y, ref_lat, ref_lon):
     return lat, lon
 
 
-def calculate_anchor_position(x, y, d, tol=0.01, max_iter=100):
+def calculate_anchor_position(x: np.ndarray, 
+                               y: np.ndarray, 
+                               d: np.ndarray, 
+                               tol: float = 0.01, 
+                               max_iter: int = 100) -> Tuple[float, float, int]:
     """
-    Calculate anchor given ship and drop positions and horizontal range.
-
-    Parameters:
+    Calculate anchor position using iterative least-squares (Gauss-Newton method).
+    
+    Solves for the anchor position that minimizes the sum of squared residuals
+    between measured horizontal ranges and distances from the estimated anchor
+    to each station.
+    
+    Parameters
     ----------
-    x : array_like
-        Ship/station x positions (meters).
-    y : array_like
-        Ship/station y positions (meters).
-    d : array_like
-        Horizontal ranges from ship to drop (meters).
-    tol : float
-        Tolerance for convergence (meters).
-    max_iter : int
-        Maximum number of iterations.
-
-    Returns:
+    x : np.ndarray
+        Ship/station x positions in meters.
+    y : np.ndarray
+        Ship/station y positions in meters.
+    d : np.ndarray
+        Horizontal ranges from ship to anchor in meters.
+    tol : float, optional
+        Tolerance for convergence in meters (default: 0.01).
+    max_iter : int, optional
+        Maximum number of iterations (default: 100).
+    
+    Returns
     -------
-    xi: float
-        Estimated anchor x position (meters).
-    yi: float
-        Estimated anchor y position (meters).
-    iterations: int
+    xi : float
+        Estimated anchor x position in meters.
+    yi : float
+        Estimated anchor y position in meters.
+    iterations : int
         Number of iterations performed.
     """
     # Initial guess for anchor position
@@ -150,98 +198,94 @@ def calculate_anchor_position(x, y, d, tol=0.01, max_iter=100):
     return xi, yi, iteration
 
 
-def rms_error(p, x, y, dist):
+def rms_error(p: Tuple[float, float], 
+            x: np.ndarray, 
+            y: np.ndarray, 
+            dist: np.ndarray) -> float:
     """
     Calculate the RMS error between calculated and measured distances.
+    
+    Parameters
+    ----------
+    p : tuple
+        Anchor position (xi, yi) in meters.
+    x : np.ndarray
+        Station x positions in meters.
+    y : np.ndarray
+        Station y positions in meters.
+    dist : np.ndarray
+        Measured distances from stations to anchor in meters.
+    
+    Returns
+    -------
+    float
+        Root mean square error in meters.
     """
     xi, yi = p
     r = np.sqrt((x - xi)**2 + (y - yi)**2)
     return np.sqrt(np.mean((r - dist)**2))
 
 
-def calculate_fallback(anchor_x, anchor_y, drop_x, drop_y):
+def calculate_fallback(anchor_x: float, 
+                        anchor_y: float, 
+                        drop_x: float, 
+                        drop_y: float) -> float:
     """
-    Calculate the estimate fallback from the drop position
+    Calculate the fallback distance from the drop position
     to the surveyed anchor position.
+    
+    Parameters
+    ----------
+    anchor_x : float
+        Anchor x position in meters (local coordinates).
+    anchor_y : float
+        Anchor y position in meters (local coordinates).
+    drop_x : float
+        Drop point x position in meters (local coordinates).
+    drop_y : float
+        Drop point y position in meters (local coordinates).
+    
+    Returns
+    -------
+    float
+        Fallback distance in meters.
     """
     fallback = np.sqrt((anchor_x - drop_x)**2 + (anchor_y - drop_y)**2)
     return fallback
 
 
-if __name__ == '__main__':
-    # Read in the stations data
-    stations = pd.read_csv('stations.dat', delim_whitespace=True,
-                           header=None).to_numpy()
-
-    # Convert to decimal degrees
-    station_lats = dms_to_dd(stations[:, 0], stations[:, 1], 0, 'N')
-    station_lons = dms_to_dd(stations[:, 2], stations[:, 3], 0, 'W')
-    times = np.asarray(stations[:, 4], dtype=float)
-
-    # Similarly, read in the drop positions and drop_depth
-    drop_data = [35, 57.068, 75, 7.822, 36]
-    drop_lat = dms_to_dd(drop_data[0], drop_data[1], 0, 'N')
-    drop_lon = dms_to_dd(drop_data[2], drop_data[3], 0, 'W')
-    drop_depth = drop_data[4]  # in meters
-
-    # Now set the other constants
-    trans_depth = 5.0  # ship transducer depth (positive down)
-    sound_speed = 1500.0  # sound speed in water (m/s)
-
-    # Calculate the station depths
-    # assuming same transducer depth for all stations
-    station_depths = np.tile(trans_depth, station_lats.shape)
-
-    # Next, want to start the triangulation process
-    # First, set the reference latitude and longitude
-    ref_lat = drop_lat
-    ref_lon = drop_lon
-
-    # Next, convert to local distances (in meters)
-    station_x, station_y = latlon_to_xy(station_lats, station_lons,
-                                        ref_lat, ref_lon)
-    drop_x, drop_y = latlon_to_xy(drop_lat, drop_lon, ref_lat, ref_lon)
-
-    # Next, calculate the slant and horizontal ranges
-    slant_range = (times / 2) * sound_speed
-    horizontal_range = np.sqrt(slant_range**2 - (drop_depth - trans_depth)**2)
-
-    # Calculate the anchor positions
-    anchor_x, anchor_y, iterations = calculate_anchor_position(
-        station_x, station_y, horizontal_range)
-
-    # Compute RMS error for the fitted results
-    rms = rms_error((station_x, station_y), anchor_x,
-                    anchor_y, horizontal_range)
-
-    # Next, recompute the actual lat/lon from the xi, yi coordinates
-    anchor_lat, anchor_lon = xy_to_latlon(anchor_x, anchor_y, ref_lat, ref_lon)
-
-    # Now calculate the fallback
-    fallback = calculate_fallback(anchor_lat, anchor_lon, drop_lat, drop_lon)
-    print(f'Estimated anchor location: {np.round(anchor_lat, 4)} lat,'
-          f'{np.round(anchor_lon, 4)} /n')
-    print(f'Estimated fallback: {np.round(fallback, 2)} m')
-
-    # --- Plot horizontal view ---
-    fig, ax = plt.subplots(figsize=(6, 6))
-    theta = np.linspace(0, 2*np.pi, 100)
-    nstations = len(stations)
-    for i in range(nstations):
-        ax.plot(station_x[i] + horizontal_range[i]*np.cos(theta),
-                station_y[i] + horizontal_range[i]*np.sin(theta),
-                'b--')
-
-    ax.plot(station_x, station_y, 'k*', label="Stations")
-    ax.plot(anchor_x, anchor_y, 'ro', label="Estimated Anchor")
-    ax.plot(np.nan, np.nan, linestyle='', label=f"Lat: {anchor_lat:.6f}")
-    ax.plot(np.nan, np.nan, linestyle='', label=f"Lon: {anchor_lon:.6f}")
-    ax.plot(np.nan, np.nan, linestyle='', label=f"RMS: {rms:.6f} m")
-
-    ax.set_xlabel("East (m)")
-    ax.set_ylabel("North (m)")
-    ax.set_title("Anchor Triangulation (Horizontal View)")
-    ax.axis('equal')
-    ax.legend()
-    ax.grid()
-    plt.show()
+def validate_survey_input(x: np.ndarray, y: np.ndarray, d: np.ndarray) -> None:
+    """
+    Validate survey input data for anchor position calculation.
+    
+    Parameters
+    ----------
+    x : np.ndarray
+        Station x positions in meters.
+    y : np.ndarray
+        Station y positions in meters.
+    d : np.ndarray
+        Horizontal ranges in meters.
+    
+    Raises
+    ------
+    ValueError
+        If input data is invalid or insufficient.
+    """
+    if len(x) < 3:
+        raise ValueError("At least 3 stations are required for triangulation")
+    
+    if len(x) != len(y) or len(x) != len(d):
+        raise ValueError("x, y, and d arrays must have the same length")
+    
+    if np.any(d <= 0):
+        raise ValueError("All horizontal ranges must be positive")
+    
+    # Check for degenerate geometry (collinear stations)
+    if len(x) >= 3:
+        # Simple check: if all stations are nearly collinear
+        # (area of triangle is near zero)
+        area = 0.5 * abs(x[0]*(y[1]-y[2]) + x[1]*(y[2]-y[0]) + x[2]*(y[0]-y[1]))
+        if area < 1.0:  # Less than 1 square meter
+            import warnings
+            warnings.warn("Stations appear to be nearly collinear. Results may be unreliable.")

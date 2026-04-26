@@ -1,10 +1,17 @@
 # ==============================================================
-# Anchor Survey Project - Makefile 
-# Author: Andrew Reed
+# Anchor Survey - Makefile
+#
+# Usage:
+#   make env        Create or update Conda environment
+#   make gui        Launch the Panel GUI
+#   make test       Run tests with pytest
+#   make lint       Run flake8 code style checks
+#   make build      Build distribution packages
+#   make clean      Remove build artifacts and caches
 # ==============================================================
 
-# Environment name (must match environment.yml)
 ENV_NAME := anchor_survey
+CONDA := $(shell command -v conda 2>/dev/null)
 
 # ==============================================================
 # Help
@@ -14,12 +21,12 @@ ENV_NAME := anchor_survey
 help:
 	@echo ""
 	@echo "Anchor Survey - Available commands:"
-	@echo "  make env          Create or update Conda environment"
-	@echo "  make activate     Print command to activate the environment"
-	@echo "  make gui          Launch the Panel GUI"
-	@echo "  make test         Run all tests using pytest"
-	@echo "  make lint         Run code style checks with flake8"
-	@echo "  make clean        Remove build artifacts and caches"
+	@echo "  make env     Create or update Conda environment"
+	@echo "  make gui     Launch the Panel GUI"
+	@echo "  make test    Run tests with pytest"
+	@echo "  make lint    Run flake8 code style checks"
+	@echo "  make build   Build distribution packages"
+	@echo "  make clean   Remove build artifacts and caches"
 	@echo ""
 
 # ==============================================================
@@ -28,13 +35,10 @@ help:
 
 .PHONY: env
 env:
-	@echo ">>> Creating or updating Conda environment '$(ENV_NAME)'..."
+ifndef CONDA
+	$(error conda not found. Install Miniconda: https://docs.conda.io/en/latest/miniconda.html)
+endif
 	conda env update -f environment.yml --prune
-
-.PHONY: activate
-activate:
-	@echo ">>> To activate this environment, run:"
-	@echo "conda activate $(ENV_NAME)"
 
 # ==============================================================
 # Run & Test
@@ -42,15 +46,36 @@ activate:
 
 .PHONY: gui
 gui:
+	@echo ">>> Starting Anchor Survey GUI (http://localhost:5006)"
+ifdef CONDA
 	conda run -n $(ENV_NAME) panel serve gui/survey_gui.py --show
+else
+	panel serve gui/survey_gui.py --show
+endif
 
 .PHONY: test
 test:
-	conda run -n $(ENV_NAME) pytest -v --maxfail=1 --disable-warnings
+ifdef CONDA
+	conda run -n $(ENV_NAME) pytest
+else
+	pytest
+endif
 
 .PHONY: lint
 lint:
+ifdef CONDA
 	conda run -n $(ENV_NAME) flake8 survey gui tests
+else
+	flake8 survey gui tests
+endif
+
+# ==============================================================
+# Build & Publish
+# ==============================================================
+
+.PHONY: build
+build:
+	python -m build
 
 # ==============================================================
 # Cleanup
@@ -58,4 +83,6 @@ lint:
 
 .PHONY: clean
 clean:
-	rm -rf __pycache__ */__pycache__ .pytest_cache build dist *.egg-info
+	rm -rf build dist *.egg-info
+	find . -type d -name __pycache__ -exec rm -rf {} +
+	find . -type d -name .pytest_cache -exec rm -rf {} +

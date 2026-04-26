@@ -1,51 +1,34 @@
-name: CI - Tests and Lint
+name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main]
   pull_request:
-    branches: [ main, master ]
+    branches: [main]
 
 jobs:
   test:
-    name: Run Tests (Python ${{ matrix.python-version }})
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          environment-file: environment.yml
-          activate-environment: anchor_survey
-          auto-update-conda: true
-          channels: conda-forge
-          use-mamba: true
 
-      - name: Verify environment
-        shell: bash -l {0}
+      - name: Install dependencies
         run: |
-          conda info
-          conda list | grep -E 'pandas|numpy|matplotlib|panel'
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
 
-      - name: Install package (editable)
-        shell: bash -l {0}
-        run: |
-          pip install -e .
+      - name: Lint with flake8
+        run: flake8 survey gui tests
 
-      - name: Run tests with pytest
-        shell: bash -l {0}
-        run: |
-          pytest -v --maxfail=1 --disable-warnings
-
-      - name: Run flake8 lint check
-        shell: bash -l {0}
-        run: |
-          flake8 survey gui tests
-
+      - name: Run tests
+        run: pytest

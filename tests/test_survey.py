@@ -1,10 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-@author Andrew Reed
-@brief Unit tests for survey.py
-"""
-
 import numpy as np
 from survey.survey import (
     dms_to_dd,
@@ -13,15 +6,14 @@ from survey.survey import (
     calculate_anchor_position,
     rms_error,
     calculate_fallback,
+    validate_survey_input,
 )
 
 
 def test_dms_to_dd_scalar():
-    # 35°57'4" N should be about 35.9511
     dd = dms_to_dd(35, 57, 4, 'N')
     assert np.isclose(dd, 35.9511, atol=1e-4)
 
-    # 75°7'49" W should be about -75.1303
     dd = dms_to_dd(75, 7, 49, 'W')
     assert np.isclose(dd, -75.1303, atol=1e-4)
 
@@ -36,7 +28,6 @@ def test_latlon_xy_conversion_roundtrip():
 
 
 def test_calculate_anchor_position():
-    # Simple geometry test: three stations at known offsets
     x = np.array([0.0, 100.0, 0.0])
     y = np.array([0.0, 0.0, 100.0])
     true_anchor = (50.0, 50.0)
@@ -45,6 +36,15 @@ def test_calculate_anchor_position():
     assert np.isclose(xi, true_anchor[0], atol=1e-3)
     assert np.isclose(yi, true_anchor[1], atol=1e-3)
     assert iters < 20
+
+
+def test_calculate_anchor_position_max_iterations():
+    # Degenerate geometry: all stations equidistant — should not converge
+    x = np.array([0.0, 1000.0, 500.0])
+    y = np.array([0.0, 0.0, 1000.0])
+    d = np.array([100.0, 100.0, 100.0])
+    xi, yi, iters = calculate_anchor_position(x, y, d, tol=1e-6, max_iter=10)
+    assert iters == 9  # reached max_iter - 1 (0-indexed)
 
 
 def test_rms_error_simple():
@@ -57,8 +57,32 @@ def test_rms_error_simple():
 
 
 def test_calculate_fallback_distance():
-    drop_lat, drop_lon = 35.9511, -75.1303
-    anchor_lat, anchor_lon = 35.9515, -75.1301
-    fb = calculate_fallback(anchor_lat, anchor_lon, drop_lat, drop_lon)
+    drop_x, drop_y = 0.0, 0.0
+    anchor_x, anchor_y = 50.0, 30.0
+    fb = calculate_fallback(anchor_x, anchor_y, drop_x, drop_y)
+    # sqrt(50^2 + 30^2) = sqrt(3400) ≈ 58.3095
+    assert np.isclose(fb, 58.3095, atol=0.01)
     assert fb > 0
-    assert fb < 100  # should be only a few tens of meters apart
+
+
+def test_validate_survey_input():
+    x = np.array([0.0, 100.0, 50.0])
+    y = np.array([0.0, 0.0, 100.0])
+    d = np.array([70.71, 70.71, 70.71])
+    validate_survey_input(x, y, d)  # should not raise
+
+    try:
+        validate_survey_input(
+            np.array([0.0, 100.0]),
+            np.array([0.0, 0.0]),
+            np.array([70.71, 70.71]),
+        )
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "3 stations" in str(e)
+
+    try:
+        validate_survey_input(x, y, np.array([-1.0, 70.71, 70.71]))
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "positive" in str(e)

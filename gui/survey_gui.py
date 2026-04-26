@@ -26,7 +26,7 @@ def run_survey(station_file, trans_depth, drop_lat_dd, drop_lon_dd,
     if station_file is None:
         return "Please select a .dat file.", None
     try:
-        stations = pd.read_csv(station_file, delim_whitespace=True,
+        stations = pd.read_csv(station_file, sep=r'\s+',
                                header=None).to_numpy()
     except Exception as e:
         return f"Error reading file: {e}", None
@@ -44,13 +44,18 @@ def run_survey(station_file, trans_depth, drop_lat_dd, drop_lon_dd,
     drop_x, drop_y = latlon_to_xy(drop_lat_dd, drop_lon_dd, ref_lat, ref_lon)
 
     slant_range = (times / 2) * sound_speed
-    horizontal_range = np.sqrt(slant_range**2 - (drop_depth - trans_depth)**2)
+    depth_diff = drop_depth - trans_depth
+    # Validate: slant_range must be greater than depth_diff for valid geometry
+    if np.any(slant_range < np.abs(depth_diff)):
+        return "Error: Slant range is less than depth difference. Check transducer/drop depths.", None
+    horizontal_range = np.sqrt(slant_range**2 - depth_diff**2)
 
     anchor_x, anchor_y, iterations = calculate_anchor_position(station_x,
                                                                station_y,
                                                                horizontal_range
                                                                )
-    rms = rms_error((station_x, station_y), anchor_x, anchor_y,
+    # rms_error expects anchor position as first arg, then station positions
+    rms = rms_error((anchor_x, anchor_y), station_x, station_y,
                     horizontal_range)
     anchor_lat, anchor_lon = xy_to_latlon(anchor_x, anchor_y, ref_lat, ref_lon)
     fallback = calculate_fallback(anchor_x, anchor_y, drop_x, drop_y)

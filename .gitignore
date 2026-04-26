@@ -1,11 +1,22 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
 
 # Virtual environments
 .venv/
 .env/
 venv/
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Jupyter & Panel temp files
 .ipynb_checkpoints/

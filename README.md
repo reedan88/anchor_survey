@@ -1,128 +1,163 @@
-# ⚓ Anchor Survey Tool
+# Anchor Survey
 
-Interactive Python tool for estimating seafloor anchor positions from ship survey data.
+Interactive Python tool for estimating seafloor anchor positions from ship survey data using acoustic triangulation.
 
 ---
 
 ## Features
-* **File Input**: Load station .dat files for survey analysis
-* **Custom Inputs**: Enter ship transducer depth, drop lat/lon (DMS), and sound speed
-* **Real-Time Visualization**: Interactive Matplotlib plot of triangulated anchor position
-* **Robust Computation**: Iterative least-squares anchor location solver with RMS error reporting
-* **Automated Testing**: Pytest suite with GitHub Actions integration
-* **Fully Reproducible**: Conda + pip hybrid environment and Makefile automation
+
+- **Interactive GUI**: Panel-based web interface for easy data input and visualization
+- **Robust Algorithms**: Iterative least-squares solver (Gauss-Newton method) for anchor triangulation
+- **Coordinate Conversion**: DMS to decimal degrees, lat/lon to local x,y (meters)
+- **Error Reporting**: RMS error calculation and fallback distance metrics
+- **Input Validation**: Validates station geometry and depth differences
+- **CI/CD**: Pytest suite with GitHub Actions
+
+---
 
 ## Installation
+
+### From PyPI
+
 ```bash
-git clone git@github.com:WHOIGit/anchor_survey.git
-cd anchor_survey
-make env
+pip install anchor-survey
 ```
 
-## Usage
-#### Launch Gui
+### From source
+
+```bash
+git clone https://github.com/reedan88/anchor_survey.git
+cd anchor_survey
+pip install -e .
 ```
+
+### Conda environment (includes dev tools)
+
+```bash
+git clone https://github.com/reedan88/anchor_survey.git
+cd anchor_survey
+conda env create -f environment.yml
+conda activate anchor_survey
+```
+
+---
+
+## Quick Start
+
+### Launch the GUI
+
+```bash
 panel serve gui/survey_gui.py --show
 ```
 
-#### Run from Python
-```
-from survey.survey import calculate_anchor_position
-```
+The GUI will open at http://localhost:5006.
 
-#### Example data
+### Use the Python API
 
-An example ```stations.dat``` file and ```drop_points.dat``` file are provided in **```data```** folder.
+```python
+from survey import calculate_anchor_position
+import numpy as np
 
-## Quick Start
-1️⃣ **Clone the repository**
-```bash
-git clone git@github.com:WHOIGit/anchor_survey.git
-cd anchor_survey
-```
+x = np.array([0.0, 100.0, 0.0])
+y = np.array([0.0, 0.0, 100.0])
+d = np.array([70.71, 70.71, 70.71])  # distances to anchor in meters
 
----
-2️⃣ **Create the environment**
-
-Use the included Makefile to create or update the Conda environment:
-```bash
-make env
-```
-Or, manually:
-```bash
-conda env create -f environment.yml
-```
-
-This will:
-* Create an environment named anchor_survey
-* Install all required dependencies (numpy, pandas, matplotlib, panel)
-* Install the package in editable mode (```-e .```)
-
----
-3️⃣ **Activate the environment**
-
-```bash
-conda activate anchor_survey
-```
-Check libraries installed (optional):
-```bash
-make check-env
+anchor_x, anchor_y, iterations = calculate_anchor_position(x, y, d)
+print(f"Anchor position: ({anchor_x:.2f}, {anchor_y:.2f}) m")
 ```
 
 ---
-4️⃣ **Launch the GUI**
 
-Run the interactive Panel-based interface:
-```bash
-make gui
-```
-This opens your default browser with the web app at: http://localhost:5006/survey_gui
+## Package Structure
 
----
-5️⃣ **Run tests**
-
-To confirm the code is working properly:
-```bash
-make test
-```
-
-
-## Repository Organization
 ```
 anchor_survey/
-│
-├── survey/       
+├── survey/              # Core computation module
 │   ├── __init__.py
-│   ├── survey.py                    
-│   ├── utils.py                     
-│
-├── gui/
+│   └── survey.py        # Algorithms (DMS conversion, triangulation)
+├── gui/                 # Interactive web interface
 │   ├── __init__.py
-│   ├── survey_gui.py                
-│
-├── data/
-│   ├── example_stations.dat
-│   ├── drop_points.dat         
-│
+│   └── survey_gui.py    # Panel-based GUI
+├── data/                # Example data files
+│   ├── example_data.dat
+│   └── drop_points.dat
 ├── tests/
-│   ├── __init__.py
-│   ├── test_survey.py               
-│
-├── notebooks/
-│   ├── exploration.ipynb            
-│              
-├── environment.yml                  
-├── .gitignore
-├── README.md
-├── LICENSE
-├── Makefile                          
-└── pyproject.toml                         
+│   └── test_survey.py
+├── environment.yml      # Conda environment definition
+├── pyproject.toml
+└── Makefile
 ```
 
-## Citation & License
+---
 
-This project is released under the BSD-3-clause License
+## Usage
+
+### GUI Workflow
+
+1. Upload a `.dat` file with station measurements
+2. Enter drop point coordinates (DMS format)
+3. Set transducer depth, drop depth, and sound speed
+4. Click **Run Triangulation** to calculate anchor position
+5. View results with visualization
+
+### Data Format
+
+**Station file** (whitespace-delimited):
+
+```
+LAT_DEG  LAT_MIN  LON_DEG  LON_MIN  ACOUSTIC_TIME_SEC
+35       56.962   75       7.548    0.672
+35       56.872   75       8.150    0.775
+```
+
+**Drop points file:**
+
+```
+LAT_DEG  LAT_MIN  LAT_DIR  LON_DEG  LON_MIN  LON_DIR  DEPTH_M
+35       57.068   N        75       7.822    W        36
+```
+
+---
+
+## API Reference
+
+| Function | Description |
+|----------|-------------|
+| `dms_to_dd(degrees, minutes, seconds, direction)` | Convert DMS to decimal degrees |
+| `latlon_to_xy(lat, lon, ref_lat, ref_lon)` | Convert lat/lon to local x,y (meters) |
+| `xy_to_latlon(x, y, ref_lat, ref_lon)` | Convert local x,y back to lat/lon |
+| `calculate_anchor_position(x, y, d)` | Triangulate anchor position |
+| `rms_error(anchor_pos, x, y, dist)` | Calculate RMS error |
+| `calculate_fallback(anchor_x, anchor_y, drop_x, drop_y)` | Calculate fallback distance |
+| `validate_survey_input(x, y, d)` | Validate input data |
+
+---
+
+## Development
+
+```bash
+# Run tests
+make test
+# or: pytest -v
+
+# Run linting
+make lint
+# or: flake8 survey gui tests
+
+# Clean build artifacts
+make clean
+```
+
+---
+
+## License
+
+BSD-3-Clause — see [LICENSE](LICENSE) for details.
+
+---
+
+## Citation
 
 If you use this tool in a publication, please cite:
 
-> Reed, A. (2025). Anchor Triangulation Tool: Python Implementation of Acoustic Survey Positioning. GitHub Repository. https://github.com/reedan88/anchor_survey
+> Reed, A. (2025). Anchor Survey: Python Implementation of Acoustic Survey Positioning. GitHub Repository. https://github.com/reedan88/anchor_survey
