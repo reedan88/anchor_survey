@@ -47,7 +47,10 @@ def run_survey(station_file, trans_depth, drop_lat_dd, drop_lon_dd,
     depth_diff = drop_depth - trans_depth
     # Validate: slant_range must be greater than depth_diff for valid geometry
     if np.any(slant_range < np.abs(depth_diff)):
-        return "Error: Slant range is less than depth difference. Check transducer/drop depths.", None
+        return (
+            "Error: Slant range is less than depth difference. "
+            "Check transducer/drop depths."
+        ), None
     horizontal_range = np.sqrt(slant_range**2 - depth_diff**2)
 
     anchor_x, anchor_y, iterations = calculate_anchor_position(station_x,

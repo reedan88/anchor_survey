@@ -1,6 +1,7 @@
 # Anchor Survey - Core Survey Module
 """
-Interactive tool for estimating seafloor anchor positions from ship survey data.
+Interactive tool for estimating seafloor anchor positions from
+ship survey data.
 
 Functions:
 - dms_to_dd: Convert degrees/minutes/seconds to decimal degrees
